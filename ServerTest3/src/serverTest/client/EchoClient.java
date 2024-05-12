@@ -1,4 +1,4 @@
-package serverTest;
+package serverTest.client;
 
 import java.io.*;
 import java.net.*;

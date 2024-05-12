@@ -1,4 +1,4 @@
-package serverTest;
+package serverTest.server;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -11,6 +11,7 @@ import java.util.ArrayList;
 
 import SimpleLogging.Logging.*;
 //import consoleWindow.*;
+import serverTest.Console8;
 
 public class EchoServer4 {
 	

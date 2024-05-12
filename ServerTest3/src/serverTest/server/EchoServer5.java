@@ -1,4 +1,4 @@
-package serverTest;
+package serverTest.server;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -13,10 +13,11 @@ import javax.swing.JFrame;
 
 import SimpleLogging.Logging.*;
 //import consoleWindow.*;
+import serverTest.Console9;
 
 public class EchoServer5 {
 	
-	private ArrayList<EchoConnection> connections = new ArrayList<EchoConnection>();
+	private ArrayList<EchoServerConnection> connections = new ArrayList<EchoServerConnection>();
 	private ArrayList<Integer> ports = new ArrayList<Integer>();
 	private int basePort = 900;
 	private static final LoggingLevel mLvl= new LoggingLevel("Echo Server");
@@ -28,7 +29,7 @@ public class EchoServer5 {
 	public EchoServer5 () {
 		Logging.setStartTime();
 //		@SuppressWarnings("unused")
-		console = new Console9("Echo Server",true);
+		console = new Console9("Echo Server", true, true);
 		console.setDefaultCloseOperation(0);
 		Logging.disableDebug();
 		console.addCommandHandler(
@@ -38,16 +39,15 @@ public class EchoServer5 {
 		);
 		try{Thread.sleep(1000);} catch(InterruptedException e) {}
 		for(int i=0; i<10; i++) {
-//			ports.add(basePort+i);
-			Logging.buildDebugMessage(mLvl,new ActionMessage("added new Thread "),new MessageParameter("pos",i));
-			connections.add(new EchoConnection(this,this.basePort+i));
+			connections.add(new EchoServerConnection(this,this.basePort+i));
 			try{Thread.sleep(20);} catch(InterruptedException e) {}
 		}
+		onPListCommand();
 		while(true) {
 			if(portUsedFails>=20) {
-				connections.forEach(
-						c->c.shutdown=true
-				);
+				onShutdownCommand();
+				try{Thread.sleep(200);} catch(InterruptedException e) {}
+				portUsedFails--;
 			}
 		}
 //		Logging.buildLogMessage(mLvl,new ActionMessage("main"));
@@ -58,7 +58,7 @@ public class EchoServer5 {
 		EchoServer5 sv = new EchoServer5();
 	}
 	
-	private void handleCommandInput(String input) {
+	public void handleCommandInput(String input) {
 		if(input.startsWith("/")) {
 			ArrayList<String> keys = new ArrayList<String>();
 //			Logging.buildLogMessage(mLvl, new ActionMessage("handling console event"), new MessageParameter("message",input));	
@@ -98,7 +98,7 @@ public class EchoServer5 {
 					break;
 				}
 				case"plist":{
-					onPListCommand(keys);
+					onPListCommand();
 					break;
 				}
 				case"pstart":{
@@ -110,7 +110,7 @@ public class EchoServer5 {
 					break;
 				}
 				case"shutdown":{
-					onShutdownCommand(keys);
+					onShutdownCommand();
 					break;
 				}
 				case"clear":{
@@ -128,11 +128,11 @@ public class EchoServer5 {
 		}
 	}
 
-	private void onClearCommand(ArrayList<String> keys) {
+	public void onClearCommand(ArrayList<String> keys) {
 		this.console.clear();
 	}
 
-	private void onGipCommand() {
+	public void onGipCommand() {
 		try{
 			String name = String.valueOf(InetAddress.getLocalHost().getHostAddress());
 			Logging.buildLogMessage(mLvl, new MessageParameter("localhost",name));
@@ -142,7 +142,7 @@ public class EchoServer5 {
 		}		
 	}
 	
-	private void onBPortCommand(ArrayList<String> params) {
+	public void onBPortCommand(ArrayList<String> params) {
 		try {
 			Logging.buildLogMessage(mLvl, new ActionMessage("changing base Port"));
 			this.basePort = Integer.parseInt(params.get(0));
@@ -151,7 +151,7 @@ public class EchoServer5 {
 		}
 	}
 	
-	private void onPSwitchCommand(ArrayList<String> params) {
+	public void onPSwitchCommand(ArrayList<String> params) {
 		try {
 			try {
 				if(params.size()<2) {
@@ -163,7 +163,7 @@ public class EchoServer5 {
 					if(connections.get(i).port==Integer.parseInt(params.get(0))) a = i;
 				}
 				if(a==-1) {
-					Logging.buildLogMessage(mLvl, new ActionMessage("use format /port <int old Port> <int new Port>"));
+					Logging.buildLogMessage(mLvl, new ActionMessage("no such port in use"),new MessageParameter("port",Integer.parseInt(params.get(0))));
 					return;
 				}
 				this.connections.get(a).setPort(Integer.parseInt(params.get(0)));
@@ -180,24 +180,32 @@ public class EchoServer5 {
 		} finally {}
 	}
 	
-	private void onPstartCommand(ArrayList<String> params) {
+	public void onPstartCommand(ArrayList<String> params) {
 		try {
-			Logging.buildLogMessage(mLvl, new ActionMessage("changing base Port"));
 			int a = Integer.parseInt(params.get(0));
-			connections.add(new EchoConnection(this,a));
+			boolean exists = false;
+			for(int i=0; i<connections.size(); i++) {
+				if(connections.get(i).getPort()==a)exists = true;
+			}
+			if(!exists) {
+				connections.add(new EchoServerConnection(this,a));
+				Logging.buildLogMessage(mLvl, new ActionMessage("opening new port"),new MessageParameter("port",a));
+			} else {
+				Logging.buildLogMessage(mLvl, new ActionMessage("port already open"),new MessageParameter("port",a));
+			}
 		} catch (NumberFormatException fe) {
-			Logging.buildLogMessage(mLvl, new ActionMessage("use format /bpswitch <int new port>"));
+			Logging.buildLogMessage(mLvl, new ActionMessage("use format /pstart <int new port>"));
 		}
 	}
 	
-	private void onPListCommand(ArrayList<String> params) {
+	public void onPListCommand() {
 		Logging.buildLogMessage(mLvl, new MessageParameter("active connections",connections.size()));
 		for(int i=0; i<connections.size(); i++) {
 			Logging.buildLogMessage(mLvl, new MessageParameter("port",connections.get(i).port), new MessageParameter("open",connections.get(i).isOpen()), new MessageParameter("connected",connections.get(i).hasConnection()));
 		}
 	}
 	
-	private void onRestartCommand(ArrayList<String> params) {
+	public void onRestartCommand(ArrayList<String> params) {
 		Logging.buildLogMessage(mLvl,new ActionMessage("restarting server"));
 		ArrayList<Integer> pts = new ArrayList<Integer>();
 		connections.forEach(c->pts.add(c.port));
@@ -205,19 +213,20 @@ public class EchoServer5 {
 		try{Thread.sleep(1000);} catch(InterruptedException e) {}
 		connections.clear();
 		for(int i=0; i<pts.size(); i++) {
-			connections.add(new EchoConnection(this, pts.get(i)));
+			connections.add(new EchoServerConnection(this, pts.get(i)));
 //			Logging.buildLogMessage(mLvl,new ActionMessage("added new Thread "),new MessageParameter("pos",i));
 		}
 	}
 	
-	private void onShutdownCommand(ArrayList<String> keys) {
+	private void onShutdownCommand() {
+		Logging.buildDebugMessage(mLvl, new ActionMessage("shutting down"));
 		connections.forEach(c->c.shutdown=true);
-		try{Thread.sleep(200);} catch(InterruptedException e) {}
+		try{Thread.sleep(3000);} catch(InterruptedException e) {}
 		connections.clear();
 		System.exit(JFrame.EXIT_ON_CLOSE);
 	}
 	
-	private class EchoConnection{
+	private class EchoServerConnection{
 		public boolean shutdown = false;
 		public boolean restart = false;
 		
@@ -228,23 +237,20 @@ public class EchoServer5 {
 		
 		private Thread connectionThread = new Thread();
 		
-		public EchoConnection(EchoServer5 es, int p) {
+		public EchoServerConnection(EchoServer5 es, int p) {
 			this.port = p;
 			//here a new server socket is opened on a new thread
 			new Thread(
 					()->{
 //						Logging.buildLogMessage(mLvl,new LoggingLevel("Connection thread "+this.port),new ActionMessage("restarting connection thread"),new MessageParameter("port",this.port));
-						//creating server socket
 						createSocket();
-						openSocket(es);
-						
-						//using newly opened server socket on a new Thread
 						while(true) {					
 							if(!connectionThread.isAlive()) {
 								connectionThread = new Thread(
 										()->{
 											//searching for a client to connect to server socket
-											searchConnection();
+//											searchConnection();
+											openSocket(es);
 											//if the socket is not closed start the communication with the client
 											if(!serverSocket.isClosed()) {
 												communicate();
@@ -288,7 +294,7 @@ public class EchoServer5 {
 					i++;
 					serverSocket =	new ServerSocket();
 				} catch (IOException e) {
-					if(i>10) {
+					if(i>0) {
 						Logging.buildLogMessage(mLvl,new LoggingLevel("Connection thread "+this.port),new ActionMessage("failed to create server socket"),new MessageParameter("reason",e.getMessage()));
 						return;
 					}
@@ -297,7 +303,7 @@ public class EchoServer5 {
 		}
 		
 		private void openSocket(EchoServer5 es) {
-			Logging.buildLogMessage(mLvl,new LoggingLevel("Connection thread "+this.port),new ActionMessage("opening server socket"),new MessageParameter("port",this.port));
+//			Logging.buildLogMessage(mLvl,new LoggingLevel("Connection thread "+this.port),new ActionMessage("opening server socket"),new MessageParameter("port",this.port));
 			int i = 0;
 			while(serverSocket.isClosed()) {
 				try {
@@ -307,26 +313,13 @@ public class EchoServer5 {
 				} catch (IOException e) {
 					if(i>10) {
 						Logging.buildLogMessage(mLvl,new LoggingLevel("Connection thread "+this.port),new ActionMessage("failed to open server socket"),new MessageParameter("reason",e.getMessage()));
-						if(e.getMessage()=="Address already in use: bind")es.portUsedFails++;
-						System.out.println(es.portUsedFails);
-						return;
-					}
-				}
-			}
-		}
-		
-		private void searchConnection() {
-			//trying to open server socket
-			int i=0;
-			while(serverSocket.isClosed()) {
-				try {
-					i++;
-					serverSocket =	new ServerSocket(this.port);
-					serverSocket.setSoTimeout(1000);
-					break;
-				} catch (IOException e) {
-					if(i>10) {
-						Logging.buildLogMessage(mLvl,new LoggingLevel("search connection"),new ActionMessage("failed to open server socket"),new MessageParameter("reason",e.getMessage()));
+						if(e.getMessage()!="Address already in use: bind") {
+							es.portUsedFails++;
+						} else {
+							System.out.println("wrong message");
+							System.out.println(e.getMessage());
+							System.out.println("Address already in use: bind");
+						}
 						return;
 					}
 				}
@@ -386,6 +379,10 @@ public class EchoServer5 {
 		public boolean isOpen() {
 			if(serverSocket==null) return false;
 			else return !serverSocket.isClosed();
+		}
+		
+		public int getPort() {
+			return this.port;
 		}
 		
 		public void setPort(int p){

@@ -39,6 +39,7 @@ public class Console9 extends JFrame{
 	private CommandLine commandLine;
 
 	private boolean quit;
+	private boolean makeLog;
 	
 	private PipedOutputStream commandOutputStream;
 	private PipedInputStream commandInputStream;
@@ -86,12 +87,13 @@ public class Console9 extends JFrame{
 		).start();
 	}
 	
-	public Console9(String name, boolean redirectConsole) {
+	public Console9(String name, boolean redirectConsole, boolean makeLogFile) {
 		super(name);
-		Logging.setStartTime();
+//		Logging.setStartTime();
 		Logging.disableColors();
 //		Logging.buildLogMessage(mLvl, new ActionMessage("constructor"));
-		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);		
+		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);	
+		this.makeLog = makeLogFile;
 		panel = new JPanel();
 		panel.setBackground(Color.black);
 		panel.setLayout(new BorderLayout());
@@ -236,7 +238,7 @@ public class Console9 extends JFrame{
 	}
 
 	public static void main(String[] args) {
-		Console9 console = new Console9("Console 9",false);
+		Console9 console = new Console9("Console 9",true, true);
 		try {Thread.sleep(500);} catch (InterruptedException e) {}
 		console.addCommandHandler(
 			(s,c)->{
@@ -257,24 +259,24 @@ public class Console9 extends JFrame{
 		public ConsoleLineHandler(Console9 c, CommandLine l) {
 			new Thread(
 					()->{
-						try {
-							Files.createDirectory(Paths.get("Logs"));
-						} catch (IOException e) {
-							System.out.print("wadsx");
-							e.printStackTrace();
-						}
 						FileWriter fWriter = null;
-						try {
-							String dir = "Logs/";
-							dir += String.valueOf((int)Math.floor(System.currentTimeMillis()/1E6));
-							dir+=".txt";
-							File fl = new File(dir);
-//							System.out.println(fl.toString());
-							fWriter = new FileWriter(fl);
-						} catch(IOException io1) {
-							io1.printStackTrace();
+						if(c.makeLog) {
+							try {
+								Files.createDirectory(Paths.get("Logs"));
+							} catch (IOException e) {
+								System.out.println(e.getMessage());
+							}
+							try {
+								String dir = "Logs/";
+								dir += String.valueOf((int)Math.floor(System.currentTimeMillis()/1E6));
+								dir+=".txt";
+								File fl = new File(dir);
+//								System.out.println(fl.toString());
+								fWriter = new FileWriter(fl);
+							} catch(IOException io1) {
+								io1.printStackTrace();
+							}
 						}
-						
 //						Logging.buildDebugMessage(mLvl,new LoggingLevel(Thread.currentThread().getName()),new ActionMessage("constructing notifier"), new MessageParameter("owner",c.lineThreadOwner.toString()));
 						c.lineThreadOwner = new Object();
 //						Logging.buildDebugMessage(mLvl,new LoggingLevel(Thread.currentThread().getName()),new ActionMessage("lineThreadOwner is now"), new MessageParameter("owner",c.lineThreadOwner.toString()));
@@ -286,7 +288,7 @@ public class Console9 extends JFrame{
 								linesAvailable();
 //								System.out.println("continuing");
 								try {
-									fWriter.write(this.bufferedMessages.get(0));
+									if(makeLog)fWriter.write(this.bufferedMessages.get(0));
 								} catch (IOException e) {}
 								c.lines.get(0).suggest(this.bufferedMessages.get(0));
 								this.bufferedMessages.remove(0);

@@ -1,30 +1,29 @@
-package serverTest;
+package serverTest.client;
 
 import java.io.*;
 import java.net.*;
 
 import SimpleLogging.Logging.*;
+import serverTest.Console9;
 
-public class EchoClient3 {
+public class EchoClient2 {
 	public static final int port = 900;
 	public static String name;
 	private static final LoggingLevel mLvl = new LoggingLevel("Client");
-	private Console9 csl;
-	private Socket echoSocket;
 	
-	public EchoClient3() {
-		csl = new Console9("Echo Client 2",true);
+	public static void main(String[] args){
+		Console9 console = new Console9("Echo Client 2",true, true);
+		console.addCommandHandler((s,c)->{System.out.println(s);});
 		try{Thread.sleep(500);} catch(InterruptedException e) {}
+		try{
+			name = String.valueOf(InetAddress.getLocalHost().getHostAddress());
+			name="127.0.0.1";
+			Logging.buildLogMessage(new LoggingLevel("Client"), new ActionMessage("getting localhost"), new MessageParameter("name",name));
+		}catch(UnknownHostException e){
+			
+		}
 		int i = 0;
 		while(i <10) {
-			try{
-				name = String.valueOf(InetAddress.getLocalHost().getHostAddress());
-				name="127.0.0.1";
-				Logging.buildLogMessage(new LoggingLevel("Client"), new ActionMessage("getting localhost"), new MessageParameter("name",name));
-			}catch(UnknownHostException e){
-				
-			}
-			
 			int port_ = port + i;
 			try {
 				Logging.buildLogMessage(mLvl, new ActionMessage("trying to connect to server "), new MessageParameter("name",name), new MessageParameter("port",port_));
@@ -55,9 +54,5 @@ public class EchoClient3 {
 //			try {Thread.sleep(5000);} catch(Exception e) {}
 //			System.exit(1);
 		}
-	}
-	
-	public static void main(String[] args){
-		
 	}
 }
