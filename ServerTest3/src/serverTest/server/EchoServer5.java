@@ -15,7 +15,8 @@ import SimpleLogging.Logging.*;
 //import consoleWindow.*;
 import serverTest.Console9;
 
-public class EchoServer5 extends ServerSocket{
+public class EchoServer5 {
+//public class EchoServer5 extends ServerSocket {
 	
 	private ArrayList<EchoServerConnection> connections = new ArrayList<EchoServerConnection>();
 	private ArrayList<Integer> ports = new ArrayList<Integer>();
@@ -27,6 +28,7 @@ public class EchoServer5 extends ServerSocket{
 	private int portUsedFails = 0;
 	
 	public EchoServer5 () {
+//		super()
 		Logging.setStartTime();
 //		@SuppressWarnings("unused")
 		console = new Console9("Echo Server", true, true);
