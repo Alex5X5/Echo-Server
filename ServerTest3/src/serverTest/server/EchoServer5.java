@@ -15,7 +15,7 @@ import SimpleLogging.Logging.*;
 //import consoleWindow.*;
 import serverTest.Console9;
 
-public class EchoServer5 {
+public class EchoServer5 extends ServerSocket{
 	
 	private ArrayList<EchoServerConnection> connections = new ArrayList<EchoServerConnection>();
 	private ArrayList<Integer> ports = new ArrayList<Integer>();
